@@ -1,4 +1,0 @@
-dubbabear
-=========
-
-Database administration tooling
