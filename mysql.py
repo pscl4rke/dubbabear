@@ -3,6 +3,11 @@
 import collections
 
 
+def _list_from_dict(items):
+    for item in sorted(items):
+        print "[%s]" % item, ", ".join(items[item])
+
+
 class MySQLConnection:
 
     def __init__(self, configuration):
@@ -39,8 +44,7 @@ class MySQLConnection:
 
     def list_users(self):
         users = self.get_users()
-        for user in sorted(users):
-            print "[%s]" % user, ", ".join(users[user])
+        _list_from_dict(users)
 
     def add_user(self, user, hosts, password):
         cursor = self._connection.cursor()
@@ -84,6 +88,28 @@ class MySQLConnection:
             cursor.execute("GRANT SELECT, SHOW VIEW ON %s.* TO %%s@%%s;"
                                 % database, (user, host))
         cursor.execute("FLUSH PRIVILEGES;")
+
+    def get_database_privileges(self, user, database):
+        # This only selects per-database privileges.
+        # I still need to implement something to query
+        # information_schema.user_privileges, and possibly
+        # table_privileges and column_priviliges.
+        cursor = self._connection.cursor()
+        cursor.execute("""
+            SELECT grantee, table_schema, privilege_type
+            FROM information_schema.schema_privileges
+            WHERE table_schema = '%s';""" % database)
+        privileges = collections.defaultdict(set)
+        for row in cursor.fetchall():
+            row_user_side, _at, host_side = row[0].partition('@')
+            row_user, host = row_user_side.strip("'"), host_side.strip("'")
+            if row_user == user:
+                privileges[row[2]].add(host)
+        return privileges
+
+    def list_database_privileges(self, user, database):
+        privileges = self.get_database_privileges(user, database)
+        _list_from_dict(privileges)
 
     def list_tables(self, database):
         cursor = self._connection.cursor()
