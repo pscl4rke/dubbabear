@@ -89,6 +89,14 @@ class MySQLConnection:
                                 % database, (user, host))
         cursor.execute("FLUSH PRIVILEGES;")
 
+    def permit_filing(self, user):
+        # allows SELECT ... INTO OUTFILE '/path/to/file'
+        hosts = self.get_users().get(user, set())
+        cursor = self._connection.cursor()
+        for host in hosts:
+            cursor.execute("GRANT FILE ON *.* TO %s@%s;", (user, host))
+        cursor.execute("FLUSH PRIVILEGES;")
+
     def get_database_privileges(self, user, database):
         # This only selects per-database privileges.
         # I still need to implement something to query
