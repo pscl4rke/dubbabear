@@ -89,6 +89,15 @@ class MySQLConnection:
                                 % database, (user, host))
         cursor.execute("FLUSH PRIVILEGES;")
 
+    def permit_locking(self, user, database):
+        # mysqldump needs to lock MyISAM tables
+        hosts = self.get_users().get(user, set())
+        cursor = self._connection.cursor()
+        for host in hosts:
+            cursor.execute("GRANT LOCK TABLES ON %s.* TO %%s@%%s;"
+                                % database, (user, host))
+        cursor.execute("FLUSH PRIVILEGES;")
+
     def permit_filing(self, user):
         # allows SELECT ... INTO OUTFILE '/path/to/file'
         hosts = self.get_users().get(user, set())
